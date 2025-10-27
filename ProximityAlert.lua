@@ -145,7 +145,8 @@ local function GetZoneRares()
             return {}
         end
 
-        DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99[ProximityAlert]:|r Zone '" .. zoneName .. "' ID: " .. zoneId)
+        -- Gate the zone ID startup message behind debug
+        DebugPrint("Zone '" .. zoneName .. "' ID: " .. zoneId)
 
         local unitData = (pfDB.units and pfDB.units.data) or {}
         local unitLoc = (pfDB.units and pfDB.units.loc) or {}
@@ -218,17 +219,18 @@ local function GetZoneRares()
             end
         end
 
+        -- these informational messages are only shown when debug is enabled
         if count > 0 then
-            DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99[ProximityAlert]:|r Found " .. tostring(count) .. " rares in '" .. zoneName .. "':")
+            DebugPrint("Found " .. tostring(count) .. " rares in '" .. zoneName .. "':")
             for name, info in pairs(cachedRares) do
                 local coordsText = ""
                 if info and info.coords and TableLen(info.coords) > 0 then
                     coordsText = " (coords: " .. tostring(TableLen(info.coords)) .. ")"
                 end
-                DEFAULT_CHAT_FRAME:AddMessage("  - " .. name .. coordsText)
+                DebugPrint("  - " .. name .. coordsText)
             end
         else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff9933[ProximityAlert]:|r No rares found in '" .. zoneName .. "' (ID " .. zoneId .. ").")
+            DebugPrint("No rares found in '" .. zoneName .. "' (ID " .. zoneId .. ").")
             DebugPrint("Total units (any rank) in zone: " .. tostring(anyCount))
         end
     end
@@ -372,6 +374,20 @@ DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert|r initialized. Scanning 
 -- ========== Slash command /proxalert ==========
 SLASH_PROXIMITYALERT1 = "/proxalert"
 
+-- SplitArgs: compatible with older WoW/Lua runtimes (avoids using string.gmatch)
+local function SplitArgs(msg)
+    local t = {}
+    if not msg or msg == "" then return t end
+    local i = 1
+    while true do
+        local s, e = string.find(msg, "%S+", i)
+        if not s then break end
+        table.insert(t, string.sub(msg, s, e))
+        i = e + 1
+    end
+    return t
+end
+
 local function PrintUsage()
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert commands:|r")
     DEFAULT_CHAT_FRAME:AddMessage("/proxalert help - show this help")
@@ -397,8 +413,7 @@ SlashCmdList["PROXIMITYALERT"] = function(msg)
         return
     end
 
-    local args = {}
-    for word in string.gmatch(msg, "%S+") do table.insert(args, word) end
+    local args = SplitArgs(msg)
     local cmd = args[1] and string.lower(args[1]) or ""
 
     if cmd == "help" then
