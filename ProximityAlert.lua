@@ -6,7 +6,7 @@ local addonName = "ProximityAlert"
 local frame = CreateFrame("Frame", "ProximityAlertMainFrame")
 local alertShown = false
 local lastScan = 0
-local scanInterval = 3     -- scan every 3 seconds
+local scanInterval = 5     -- increased: scan every 5 seconds (was 3)
 local cooldown = 180       -- 3-minute cooldown per rare to avoid spam
 
 -- Saved settings (persisted as ProximityAlertConfig between sessions)
@@ -351,15 +351,22 @@ end
 frame:SetScript("OnUpdate", function()
     local now = GetTime()
     if now - lastScan >= scanInterval then
-        if ProximityAlertConfig.enabled then
-            local ok, err = pcall(SilentScan)
-            if not ok and err then
-                DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[ProximityAlert Error]: " .. tostring(err) .. "|r")
-            end
-        else
+        if not ProximityAlertConfig.enabled then
             DebugPrint("ProximityAlert scanning paused (disabled).")
+            lastScan = now
+        else
+            -- If the player is in combat, skip scanning to avoid interrupting auto-attack / combat flow.
+            -- Do NOT update lastScan so scanning will resume immediately once combat ends.
+            if type(UnitAffectingCombat) == "function" and UnitAffectingCombat("player") then
+                DebugPrint("Player in combat: skipping scan until combat ends.")
+            else
+                local ok, err = pcall(SilentScan)
+                if not ok and err then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cffff5555[ProximityAlert Error]: " .. tostring(err) .. "|r")
+                end
+                lastScan = now
+            end
         end
-        lastScan = now
     end
 
     if hideTime and now > hideTime then
