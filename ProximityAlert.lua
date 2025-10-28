@@ -333,10 +333,16 @@ local function SilentScan()
     -- restore previous target if none found
     if type(UnitName) == "function" then
         local cur = UnitName("target")
-        if not cur and prevTarget then
-            pcall(TargetByName, prevTarget, true)
-        elseif not cur then
-            pcall(ClearTarget)
+        if not cur then
+            -- Prefer TargetLastTarget() to restore the exact previous target history if available.
+            -- Fall back to TargetByName(prevTarget) for clients without TargetLastTarget.
+            if prevTarget and type(TargetLastTarget) == "function" then
+                pcall(TargetLastTarget)
+            elseif prevTarget and type(TargetByName) == "function" then
+                pcall(TargetByName, prevTarget, true)
+            else
+                pcall(ClearTarget)
+            end
         end
     end
 end
