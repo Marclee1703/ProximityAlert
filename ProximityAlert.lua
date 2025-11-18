@@ -15,6 +15,10 @@ ProximityAlertConfig = ProximityAlertConfig or {
     debug = false,
     sounds = true,
     approachDistance = 0.06, -- normalized (0..1)
+    -- blacklist: names of mobs to ignore entirely (exact match, case-insensitive)
+    blacklist = {
+        ["heroic training dummy"] = true,
+    },
 }
 
 -- Track when each mob was last alerted
@@ -112,6 +116,19 @@ local function TableLen(t)
     return n
 end
 
+-- Check whether a mob name is blacklisted (case-insensitive, trims whitespace)
+local function IsBlacklisted(name)
+    if not name then return false end
+    local s = tostring(name)
+    -- trim
+    s = string.gsub(s, "^%s*(.-)%s*$", "%1")
+    s = string.lower(s)
+    if ProximityAlertConfig.blacklist and ProximityAlertConfig.blacklist[s] then
+        return true
+    end
+    return false
+end
+
 -- pfQuest Integration
 
 -- Load rare list for the current zone and extract coordinates if available
@@ -205,14 +222,18 @@ local function GetZoneRares()
                         local unitNum = tonumber(unitId)
                         local name = (unitLoc and (unitLoc[unitId] or unitLoc[unitNum])) or data.name or tostring(unitId)
                         if name then
-                            cachedRares[name] = cachedRares[name] or {}
-                            -- attach coords if any found (may be empty)
-                            if TableLen(coordsFound) > 0 then
-                                cachedRares[name].coords = coordsFound
+                            if IsBlacklisted(name) then
+                                DebugPrint("Skipping blacklisted mob: " .. tostring(name))
                             else
-                                cachedRares[name].coords = cachedRares[name].coords or {}
+                                cachedRares[name] = cachedRares[name] or {}
+                                -- attach coords if any found (may be empty)
+                                if TableLen(coordsFound) > 0 then
+                                    cachedRares[name].coords = coordsFound
+                                else
+                                    cachedRares[name].coords = cachedRares[name].coords or {}
+                                end
+                                count = count + 1
                             end
-                            count = count + 1
                         end
                     end
                 end
@@ -486,6 +507,9 @@ SlashCmdList["PROXIMITYALERT"] = function(msg)
             debug = false,
             sounds = true,
             approachDistance = 0.06,
+            blacklist = {
+                ["heroic training dummy"] = true,
+            },
         }
         DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert: settings reset to defaults|r")
         return
