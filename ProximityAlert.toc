@@ -3,4 +3,5 @@
 ## Notes: Alerts you when rare mobs are nearby using pfDB/pfQuest data.
 ## Dependencies: pfQuest
 ## OptionalDeps: pfQuest-turtle, pfQuest-octo
+## SavedVariables: ProximityAlertConfig
 ProximityAlert.lua

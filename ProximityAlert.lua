@@ -430,7 +430,18 @@ local function PrintUsage()
     DEFAULT_CHAT_FRAME:AddMessage("/proxalert sounds on|off - toggle sounds")
     DEFAULT_CHAT_FRAME:AddMessage("/proxalert distance <0.01..0.5> - set approach distance (normalized)")
     DEFAULT_CHAT_FRAME:AddMessage("/proxalert status - print current settings")
+    DEFAULT_CHAT_FRAME:AddMessage("/proxalert ignore <mob name> - never alert for this mob (e.g. ignore Sewer Beast)")
+    DEFAULT_CHAT_FRAME:AddMessage("/proxalert unignore <mob name> - alert for it again")
+    DEFAULT_CHAT_FRAME:AddMessage("/proxalert ignored - list ignored mobs")
     DEFAULT_CHAT_FRAME:AddMessage("/proxalert reset - reset settings to defaults")
+end
+
+-- rest of the message after the command word, trimmed (mob names have spaces)
+local function RestOfMessage(msg)
+    local s, e = string.find(msg, "%S+")
+    if not s then return "" end
+    local rest = string.gsub(string.sub(msg, e + 1), "^%s*(.-)%s*$", "%1")
+    return rest
 end
 
 local function ShowStatus()
@@ -497,6 +508,32 @@ SlashCmdList["PROXIMITYALERT"] = function(msg)
         else
             DEFAULT_CHAT_FRAME:AddMessage("Usage: /proxalert distance <0.01..0.5>")
         end
+        return
+    elseif cmd == "ignore" or cmd == "unignore" then
+        local name = string.lower(RestOfMessage(msg))
+        if name == "" then
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff5555ProximityAlert: give a mob name, e.g. /proxalert " .. cmd .. " Sewer Beast|r")
+            return
+        end
+        ProximityAlertConfig.blacklist = ProximityAlertConfig.blacklist or {}
+        if cmd == "ignore" then
+            ProximityAlertConfig.blacklist[name] = true
+            DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert: ignoring '" .. name .. "'|r")
+        else
+            ProximityAlertConfig.blacklist[name] = nil
+            DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert: no longer ignoring '" .. name .. "'|r")
+        end
+        lastZone = nil   -- rebuild the zone's rare cache with the new list
+        return
+    elseif cmd == "ignored" then
+        local n = 0
+        for name, on in pairs(ProximityAlertConfig.blacklist or {}) do
+            if on then
+                DEFAULT_CHAT_FRAME:AddMessage("  - " .. name)
+                n = n + 1
+            end
+        end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99ProximityAlert: " .. n .. " ignored mob(s)|r")
         return
     elseif cmd == "status" then
         ShowStatus()
