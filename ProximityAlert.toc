@@ -1,5 +1,7 @@
 ## Interface: 11200
 ## Title: ProximityAlert
 ## Notes: Alerts you when rare mobs are nearby using pfDB/pfQuest data.
-## Dependencies: pfQuest, pfQuest-turtle
+## Dependencies: pfQuest
+## OptionalDeps: pfQuest-turtle, pfQuest-octo
+## SavedVariables: ProximityAlertConfig
 ProximityAlert.lua
